@@ -11,16 +11,16 @@
 #define ALERT 1  // digital out pin for threshold alert (D1, chip pin 6) 
 #define DELAY 100    // delay in millisecs between cap tests
 #define SensorRate 9600
-#define INDEX_SIZE 48 // array of 48 char 
+#define INDEX_SIZE 48 // buffer size set to 48 char 
 #define tag1 1
 #define tag2 2
 
 SoftwareSerial RFin(RX1,TX1);
 SoftwareSerial DebugOut(RX2,TX2);
 
-float rxbuffer[INDEX_SIZE] = {}; //  receive buffer
-int ID=0;                   // 
-int buffstart, bufftop = 0; // position in circular buffer above
+char rxbuffer[INDEX_SIZE] = {}; //  receive buffer
+long ID=0;                   // 
+int buffptr = 0; // position in circular buffer above
 
 void setup()                    
 {
@@ -32,19 +32,20 @@ void setup()
 
 void loop()                    
 {
-   buffstart=bufftop;
+   buffptr=0;
    while(RFin.available()>0)
        {
-        rxbuffer[bufftop]=RFin.read();
-        // move slot in circular buffer
-        if ( ++bufftop > INDEX_SIZE-1)  bufftop=0;
+        rxbuffer[buffptr]=RFin.read();
        }              // end while serial
    DebugOut.print("READ IN:\n");   
-   for(int i=buffstart;i<bufftop;i++)
+   for(int i=0;i<=buffptr;i++)
       {     
-       DebugOut.print(rxbuffer[i],DEC);
+       DebugOut.print(rxbuffer[i],HEX);
       }
-   DebugOut.write('\n');   
+   DebugOut.write('\n');  
+   ID=strtol(rxbuffer,NULL,16); 
+   DebugOut.print(ID,DEC);
+   DebugOut.write('\n');  
    if(ID==tag1 || ID==tag2)  // if authoried tag detected, 
       {
       digitalWrite(ALERT,LOW);
