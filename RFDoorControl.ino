@@ -1,7 +1,8 @@
 #include <SoftwareSerial.h>
-/*  Arduino Capacitive Sensor with serial interface for threshold setting   14/8/18   Bruce Woolmore
- * send "|" for command mode, then decimal value of next char * 10 = threshold for alert (sets alert pin, sends value to serial port)
- * Attiny85 uses D0,D2 (chip pins 5,7) for soft serial, D4,D3 (chip pins 3,2) for cap sense send/sense pins, D1 (chip pin 6) for digital LOW alert
+/* if RF reader detects an authorised tag, fire door control solenoid
+ *  RF reader outputs ID of tag read onto serial port
+ * Attiny85 uses D0,D2 (chip pins 5,7) for rf reader soft serial port, 
+ * D4,D3 (chip pins 3,2) for debug/control port, and D1 (chip pin 6) for digital LOW alert
  */
 #define RX1 3 // *** D3, Pin 2  
 #define TX1 4 // *** D4, Pin 3 
@@ -11,15 +12,15 @@
 #define DELAY 100    // delay in millisecs between cap tests
 #define SensorRate 9600
 #define INDEX_SIZE 48 // array of 48 char 
+#define tag1 1
+#define tag2 2
 
 SoftwareSerial RFin(RX1,TX1);
 SoftwareSerial DebugOut(RX2,TX2);
 
-bool cmdMode=false;
-int Threshold=500; 
-int Inbyte;
-float press_array[INDEX_SIZE] = {0.0}; //  pressure readings
-int buffptr = 0; // position in circular buffer above
+float rxbuffer[INDEX_SIZE] = {}; //  receive buffer
+int ID=0;                   // 
+int buffstart, bufftop = 0; // position in circular buffer above
 
 void setup()                    
 {
@@ -31,17 +32,25 @@ void setup()
 
 void loop()                    
 {
+   buffstart=bufftop;
    while(RFin.available()>0)
        {
-        Inbyte=RFin.read();
-          // move slot in circular buffer
-        if ( ++buffptr > INDEX_SIZE-1)  buffptr=0;
+        rxbuffer[bufftop]=RFin.read();
+        // move slot in circular buffer
+        if ( ++bufftop > INDEX_SIZE-1)  bufftop=0;
        }              // end while serial
-       DebugOut.print("READ IN:\n");DebugOut.write(Inbyte);DebugOut.write(':');DebugOut.print(Inbyte,DEC);DebugOut.write('\n');
-        DebugOut.write('\n');
-        digitalWrite(ALERT,LOW);
-        delay(200);
-        digitalWrite(ALERT,HIGH);
+   DebugOut.print("READ IN:\n");   
+   for(int i=buffstart;i<bufftop;i++)
+      {     
+       DebugOut.print(rxbuffer[i],DEC);
+      }
+   DebugOut.write('\n');   
+   if(ID==tag1 || ID==tag2)  // if authoried tag detected, 
+      {
+      digitalWrite(ALERT,LOW);
+      delay(200);
+      digitalWrite(ALERT,HIGH);
+      }  
 }
 
 
