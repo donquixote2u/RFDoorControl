@@ -10,7 +10,7 @@
 #define DELAY 100    // delay in millisecs between cap tests
 #define SensorRate 9600
 #define INDEX_SIZE 48 // buffer size set to 48 char 
-#define tag1 1
+#define tag1 1402397
 #define tag2 2
 
 SoftwareSerial RFin(RX1,TX1);
@@ -40,7 +40,7 @@ void loop()
       {     
        RFin.write(rxbuffer[i]);
        ID <<= 8;      // shift left 8 bits, add new byte to ID number
-       ID |= (byte) rxbuffer[i];
+       ID |= rxbuffer[i];
       }
    RFin.write('-'); 
    RFin.print(ID,DEC);
@@ -50,8 +50,9 @@ void loop()
       digitalWrite(ALERT,LOW);
       delay(200);
       digitalWrite(ALERT,HIGH);
+      if(ID==tag1)
+        { RFin.print("tag1 read\n"); }
       }
-   }  
+   }
+delay(200);     
 }
-
-
